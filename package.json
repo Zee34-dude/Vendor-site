@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "jose": "^5.2.4",
     "lucide-react": "^0.378.0",
     "mongoose": "^8.3.4",
