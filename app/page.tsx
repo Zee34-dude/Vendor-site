@@ -91,6 +91,7 @@ export default function Home() {
               <a href="#menu" className="hover:text-primary transition-colors">Menu</a>
               <a href="#how-it-works" className="hover:text-primary transition-colors">How it Works</a>
               <a href="#contact" className="hover:text-primary transition-colors">Contact</a>
+              <a href="/admin" className="hover:text-primary transition-colors opacity-60">Staff</a>
             </div>
             <div>
               <a href="#menu" className="bg-primary text-white px-6 py-2.5 rounded-full font-bold shadow-lg shadow-primary/30 hover:bg-orange-600 transition-all hover:scale-105 active:scale-95 text-sm">
