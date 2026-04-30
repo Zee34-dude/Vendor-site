@@ -11,12 +11,17 @@ interface Product {
   category: string;
 }
 
+const CATEGORIES = ["Rice Dishes", "Proteins", "Sides", "Drinks", "Desserts", "Others"];
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: "", price: "", description: "", image: "", category: "" });
+  const [form, setForm] = useState({ name: "", price: "", description: "", category: "" });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const fetchProducts = () => {
@@ -33,7 +38,9 @@ export default function ProductsPage() {
   }, []);
 
   const resetForm = () => {
-    setForm({ name: "", price: "", description: "", image: "", category: "" });
+    setForm({ name: "", price: "", description: "", category: "" });
+    setImageFile(null);
+    setImagePreview(null);
     setEditing(null);
     setShowModal(false);
   };
@@ -44,32 +51,66 @@ export default function ProductsPage() {
       name: product.name,
       price: product.price.toString(),
       description: product.description,
-      image: product.image,
       category: product.category,
     });
+    setImagePreview(product.image);
     setShowModal(true);
+  };
+
+  const handleImageChange = (file: File) => {
+    if (file && file.type.startsWith("image/")) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageChange(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
-    const payload = { ...form, price: Number(form.price) };
+    const formData = new FormData();
+    formData.append("name", form.name);
+    formData.append("price", form.price);
+    formData.append("description", form.description);
+    formData.append("category", form.category);
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
 
     const url = editing ? `/api/products/${editing._id}` : "/api/products";
     const method = editing ? "PUT" : "POST";
 
     const res = await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: formData,
     });
 
     if (res.ok) {
       fetchProducts();
       resetForm();
     } else {
-      alert("Failed to save product");
+      const data = await res.json();
+      alert(data.error || "Failed to save product");
     }
     setSaving(false);
   };
@@ -189,14 +230,15 @@ export default function ProductsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
-                  <input
-                    type="text"
+                  <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full bg-gray-50 border-0 rounded-xl p-3 focus:ring-2 focus:ring-primary outline-none"
-                    placeholder="e.g. Rice Dishes"
+                    className="w-full bg-gray-50 border-0 rounded-xl p-3 focus:ring-2 focus:ring-primary outline-none appearance-none"
                     required
-                  />
+                  >
+                    <option value="" disabled>Select Category</option>
+                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
                 </div>
               </div>
 
@@ -213,20 +255,42 @@ export default function ProductsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Image URL</label>
-                <input
-                  type="url"
-                  value={form.image}
-                  onChange={(e) => setForm({ ...form, image: e.target.value })}
-                  className="w-full bg-gray-50 border-0 rounded-xl p-3 focus:ring-2 focus:ring-primary outline-none"
-                  placeholder="https://images.unsplash.com/..."
-                  required
-                />
-                {form.image && (
-                  <div className="mt-3 rounded-xl overflow-hidden h-32 bg-gray-100">
-                    <img src={form.image} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                )}
+                <label className="block text-sm font-bold text-gray-700 mb-2">Product Image</label>
+                <div
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                  className={`relative border-2 border-dashed rounded-2xl p-4 transition-all flex flex-col items-center justify-center min-h-[160px] ${
+                    isDragging ? "border-primary bg-primary/5 scale-[1.02]" : "border-gray-200 bg-gray-50"
+                  }`}
+                >
+                  {imagePreview ? (
+                    <div className="relative w-full h-full">
+                      <img src={imagePreview} alt="Preview" className="w-full max-h-48 object-contain rounded-xl" />
+                      <button
+                        type="button"
+                        onClick={() => { setImageFile(null); setImagePreview(null); }}
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-white shadow-md rounded-full flex items-center justify-center text-red-500 hover:scale-110 transition-transform"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-2xl">📸</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">Drag and drop or click to upload</p>
+                      <p className="text-xs text-gray-400">PNG, JPG or WebP up to 5MB</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && handleImageChange(e.target.files[0])}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
               </div>
 
               <button

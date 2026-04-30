@@ -1,7 +1,7 @@
 import { Product } from "./types";
 
 export const BUSINESS_NAME = "BUJEE TREATS";
-export const BUSINESS_PHONE = "2347049421401"; // WhatsApp number (no + or spaces)
+export const BUSINESS_PHONE = "2348165383157"; // WhatsApp number (no + or spaces)
 export const BUSINESS_TAGLINE = "Fresh treats, fast delivery";
 export const ADMIN_PASSWORD = "admin123"; // simple MVP password
 
